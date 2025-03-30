@@ -10,7 +10,7 @@ This bot allows you to play music in Discord voice channels, supporting tracks a
 
 ## Requirements
 To run the bot, you will need:
-- Python 3.8 or higher (3.11 recommended).
+- Python 3.8 or higher.
 - A Discord account and a bot token.
 - A Spotify Developer account (to obtain `SPOTIFY_CLIENT_ID` and `SPOTIFY_CLIENT_SECRET`).
 - A hosting service (e.g., Railway), a local computer, or Docker to run the bot.
