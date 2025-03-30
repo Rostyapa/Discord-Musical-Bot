@@ -126,7 +126,7 @@ If you want to deploy the bot on a Docker-supported hosting service (e.g., Fly.i
 - Copy the generated URL and use it to invite the bot.
 - Join a voice channel on your server.
 - Use the /play command to play music:
-Single Track:
+ Single Track:
 ```
 /play https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT
 ```
