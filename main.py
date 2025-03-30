@@ -325,7 +325,7 @@ class MusicControls(ui.View):
         last_button_press[user_id] = current_time
         return True
 
-    @ui.button(emoji="<:Play:1355147643600375969>", style=discord.ButtonStyle.grey)
+    @ui.button(emoji="▶️", style=discord.ButtonStyle.grey)
     async def resume_button(self, interaction: discord.Interaction, button: ui.Button):
         vc = discord.utils.get(client.voice_clients, guild=interaction.guild)
         if vc and vc.is_paused():
@@ -334,7 +334,7 @@ class MusicControls(ui.View):
         else:
             await interaction.response.send_message("Музыка не на паузе.", ephemeral=True)
 
-    @ui.button(emoji="<:Pause:1355147640836198531>", style=discord.ButtonStyle.grey)
+    @ui.button(emoji="⏸️", style=discord.ButtonStyle.grey)
     async def pause_button(self, interaction: discord.Interaction, button: ui.Button):
         vc = discord.utils.get(client.voice_clients, guild=interaction.guild)
         if vc and vc.is_playing():
@@ -343,7 +343,7 @@ class MusicControls(ui.View):
         else:
             await interaction.response.send_message("Сейчас ничего не играет.", ephemeral=True)
 
-    @ui.button(emoji="<:Skip:1355147642077970473>", style=discord.ButtonStyle.grey)
+    @ui.button(emoji="⏭️", style=discord.ButtonStyle.grey)
     async def skip_button(self, interaction: discord.Interaction, button: ui.Button):
         vc = discord.utils.get(client.voice_clients, guild=interaction.guild)
         if vc and vc.is_playing():
@@ -353,7 +353,7 @@ class MusicControls(ui.View):
         else:
             await interaction.response.send_message("Сейчас ничего не играет.", ephemeral=True)
 
-    @ui.button(emoji="<:restart:1355147638215016539>", style=discord.ButtonStyle.grey)
+    @ui.button(emoji="🔁", style=discord.ButtonStyle.grey)
     async def restart_button(self, interaction: discord.Interaction, button: ui.Button):
         vc = discord.utils.get(client.voice_clients, guild=interaction.guild)
         if vc and vc.is_playing() and interaction.guild.id in current_track_url:
@@ -371,7 +371,7 @@ class MusicControls(ui.View):
     async def link_button(self, interaction: discord.Interaction, button: ui.Button):
         await interaction.response.send_message("Перейди по ссылке: <https://example.com>", ephemeral=True)
 
-    @ui.button(emoji="<:stopbutton:1355147611375407185>", style=discord.ButtonStyle.grey)
+    @ui.button(emoji="🗑️", style=discord.ButtonStyle.grey)
     async def clear_button(self, interaction: discord.Interaction, button: ui.Button):
         if interaction.guild.id in queues:
             queues[interaction.guild.id].clear()
@@ -379,7 +379,7 @@ class MusicControls(ui.View):
         else:
             await interaction.response.send_message("Очередь уже пуста!", ephemeral=True)
 
-    @ui.button(emoji="🏗️", style=discord.ButtonStyle.grey)
+    @ui.button(emoji="📑", style=discord.ButtonStyle.grey)
     async def queue_button(self, interaction: discord.Interaction, button: ui.Button):
         if interaction.guild.id not in queues or not queues[interaction.guild.id]:
             await interaction.response.send_message("Очередь пуста!", ephemeral=True)
@@ -387,7 +387,7 @@ class MusicControls(ui.View):
         queue_list = "\n".join([f"{i+1}. {title}" for i, (_, title) in enumerate(queues[interaction.guild.id])])
         await interaction.response.send_message(f"Текущая очередь:\n{queue_list}", ephemeral=True)
 
-    @ui.button(emoji="<:exit:1355147639603069139>", style=discord.ButtonStyle.grey)
+    @ui.button(emoji="🚪", style=discord.ButtonStyle.grey)
     async def leave_button(self, interaction: discord.Interaction, button: ui.Button):
         vc = discord.utils.get(client.voice_clients, guild=interaction.guild)
         if vc:
@@ -411,7 +411,7 @@ class MusicControls(ui.View):
         else:
             await interaction.response.send_message("Я не в голосовом канале!", ephemeral=True)
 
-    @ui.button(emoji="👍", style=discord.ButtonStyle.grey)
+    @ui.button(emoji="🔊", style=discord.ButtonStyle.grey)
     async def volume_up_button(self, interaction: discord.Interaction, button: ui.Button):
         vc = discord.utils.get(client.voice_clients, guild=interaction.guild)
         if vc and vc.source:
@@ -422,7 +422,7 @@ class MusicControls(ui.View):
         else:
             await interaction.response.send_message("Бот не в голосовом канале или ничего не играет!", ephemeral=True)
 
-    @ui.button(emoji="👉", style=discord.ButtonStyle.grey)
+    @ui.button(emoji="🔉", style=discord.ButtonStyle.grey)
     async def volume_down_button(self, interaction: discord.Interaction, button: ui.Button):
         vc = discord.utils.get(client.voice_clients, guild=interaction.guild)
         if vc and vc.source:
