@@ -90,15 +90,15 @@ pip install -r requirements.txt
   python main.py
 ```
 ### Option 2: Deployment on Railway
-- 1. Create a project on [Railway](https://railway.com).
-- 2. Connect your GitHub repository.
-- 3. Add the environment variables (`DISCORD_TOKEN`, `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET`) in the "Variables" section.
-- 4. Railway will automatically build and run the bot using **nixpacks.toml**.
+1. Create a project on [Railway](https://railway.com).
+2. Connect your GitHub repository.
+3. Add the environment variables (`DISCORD_TOKEN`, `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET`) in the "Variables" section.
+4. Railway will automatically build and run the bot using **nixpacks.toml**.
 ### Option 3: Deployment with Docker
-- **1. Ensure Docker is installed:**
+1. **Ensure Docker is installed:**
 - Windows/macOS: Install Docker Desktop.
 - Linux: Install Docker via your package manager, e.g., sudo apt install docker.io.
-- **2. Build the Docker image:**
+2. **Build the Docker image:**
 ```
 docker build -t discord-music-bot .
 ```
@@ -115,13 +115,13 @@ docker run -d \
 - **Note**:
 - If you want to deploy the bot on a Docker-supported hosting service (e.g., Fly.io, Render, or your own server), push the built image to Docker Hub or use docker-compose for more complex setups.
 ### Usage
-- **1. Invite the bot to your Discord server:**
+1. **Invite the bot to your Discord server:**
 - In the Discord Developer Portal, go to your application → "OAuth2" → "URL Generator".
 - Select scopes: *bot and applications.commands*.
 - Select permissions: *Connect, Speak, Send Messages, Embed Links.*
 - Copy the generated URL and use it to invite the bot.
-- **2. Join a voice channel on your server.**
-- **3. Use the /play command to play music:**
+2. **Join a voice channel on your server.**
+3. **Use the /play command to play music:**
 - **Single Track**:
 ```
 /play https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT
@@ -146,7 +146,7 @@ docker run -d \
 ```
 /play The Weeknd - Blinding Lights
 ```
-- **4. Use the control buttons to pause, skip, restart tracks, adjust volume, and more.**
+4. **Use the control buttons to pause, skip, restart tracks, adjust volume, and more.**
 ### Troubleshooting
 - **Bot cannot connect to the voice channel:**
 - Ensure the bot has **Connect** and **Speak** permissions on the server.
