@@ -1,0 +1,8 @@
+[phases.setup]
+  nixPkgs = ['ffmpeg']  # Install FFmpeg
+
+[phases.build]
+  cmds = ['pip install -r requirements.txt']  # Install Python dependencies
+
+[start]
+  cmd = 'python main.py'  # The command to start the bot
