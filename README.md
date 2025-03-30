@@ -21,7 +21,7 @@ To run the bot, you will need:
 ### 1. Clone the Repository
 Clone this repository to your computer or upload it to your hosting service:
 ```
-git clone https://github.com/your-username/discord-music-bot.git
+git clone https://github.com/Rostyapa/Discord-Musical-Bot.git
 ```
 ### 2. Configure Tokens and API Keys
 **You need to set up the following environment variables:**
