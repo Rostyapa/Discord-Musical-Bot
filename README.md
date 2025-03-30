@@ -152,8 +152,8 @@ Search Query:
 ```
 Use the control buttons to pause, skip, restart tracks, adjust volume, and more.
 # Troubleshooting
-Bot cannot connect to the voice channel:
-Ensure the bot has Connect and Speak permissions on the server.
+- Bot cannot connect to the voice channel:
+- Ensure the bot has Connect and Speak permissions on the server.
 Verify that you are in a voice channel.
 Error: "Voice client cannot be created" or "No voice library found":
 Ensure PyNaCl is installed (pip install PyNaCl).
