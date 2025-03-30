@@ -39,7 +39,7 @@ git clone https://github.com/your-username/discord-music-bot.git
 - Create a new application.
 - Copy the Client ID and Client Secret and save them as `SPOTIFY_CLIENT_ID` and `SPOTIFY_CLIENT_SECRET`.
 - If your app is in development mode, add your Spotify account to the list of users in the "Users and Access" section.
-+ **Setting Up Environment Variables:**
+### Setting Up Environment Variables:
 - **Locally**: Create a .env file in the project root and add:
 ```
 DISCORD_TOKEN=your_discord_token
@@ -61,11 +61,11 @@ SPOTIFY_CLIENT_SECRET=your_spotify_client_secret
 ### 3. (Optional) Configure Cookies for SoundCloud and YouTube
 If you want to play private tracks or playlists from SoundCloud or YouTube, you need to set up cookies.
 **For SoundCloud:**
-- 1.Log in to your SoundCloud account in a browser.
-- 2.Open the developer tools (F12) → "Network" tab.
-- 3.Refresh the page and find a request to **soundcloud.com**.
-- 4.Copy the cookies from the request headers (or use an extension like **EditThisCookie**).
-- 5.Open the `soundcloud_cookies.txt` file and paste the cookies in Netscape format:
+1. Log in to your SoundCloud account in a browser.
+2. Open the developer tools (F12) → "Network" tab.
+3. Refresh the page and find a request to **soundcloud.com**.
+4. Copy the cookies from the request headers (or use an extension like **EditThisCookie**).
+5. Open the `soundcloud_cookies.txt` file and paste the cookies in Netscape format:
 ```
 # Netscape HTTP Cookie File
 .soundcloud.com    TRUE    /    FALSE    0    key    value
