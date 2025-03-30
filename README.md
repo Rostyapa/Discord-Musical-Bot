@@ -24,4 +24,9 @@ Clone this repository to your computer or upload it to your hosting service:
 git clone https://github.com/your-username/discord-music-bot.git
 cd discord-music-bot
 ```
-# 2. Configure Tokens and API Keys
+### 2. Configure Tokens and API Keys
+You need to set up the following environment variables:
+- DISCORD_TOKEN: Your Discord bot token.
+- SPOTIFY_CLIENT_ID: Your Spotify Client ID.
+- SPOTIFY_CLIENT_SECRET: Your Spotify Client Secret.
+### How to Obtain Tokens:
