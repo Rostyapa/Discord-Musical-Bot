@@ -34,12 +34,12 @@ git clone https://github.com/your-username/discord-music-bot.git
 - Create a new application and add a bot.
 - Copy the bot token and save it as `DISCORD_TOKEN`.
 - Ensure the bot has the following Intents enabled: message_content and voice_states.
-- **2. Spotify Client ID and Client Secret:**
+**2. Spotify Client ID and Client Secret:**
 - Go to the Spotify Developer Dashboard.
 - Create a new application.
 - Copy the Client ID and Client Secret and save them as `SPOTIFY_CLIENT_ID` and `SPOTIFY_CLIENT_SECRET`.
 - If your app is in development mode, add your Spotify account to the list of users in the "Users and Access" section.
-- **Setting Up Environment Variables:**
+**Setting Up Environment Variables:**
 - **Locally**: Create a .env file in the project root and add:
 ```
 DISCORD_TOKEN=your_discord_token
