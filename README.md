@@ -119,13 +119,13 @@ Note:
 If you want to deploy the bot on a Docker-supported hosting service (e.g., Fly.io, Render, or your own server), push the built image to Docker Hub or use docker-compose for more complex setups.
 
 # Usage
-Invite the bot to your Discord server:
-In the Discord Developer Portal, go to your application → "OAuth2" → "URL Generator".
-Select scopes: bot and applications.commands.
-Select permissions: Connect, Speak, Send Messages, Embed Links.
-Copy the generated URL and use it to invite the bot.
-Join a voice channel on your server.
-Use the /play command to play music:
+- Invite the bot to your Discord server:
+- In the Discord Developer Portal, go to your application → "OAuth2" → "URL Generator".
+- Select scopes: bot and applications.commands.
+- Select permissions: Connect, Speak, Send Messages, Embed Links.
+- Copy the generated URL and use it to invite the bot.
+- Join a voice channel on your server.
+- Use the /play command to play music:
 Single Track:
 ```
 /play https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT
@@ -154,22 +154,22 @@ Use the control buttons to pause, skip, restart tracks, adjust volume, and more.
 # Troubleshooting
 - Bot cannot connect to the voice channel:
 - Ensure the bot has Connect and Speak permissions on the server.
-Verify that you are in a voice channel.
-Error: "Voice client cannot be created" or "No voice library found":
-Ensure PyNaCl is installed (pip install PyNaCl).
-Verify that FFmpeg is installed and accessible.
-Error: "FFmpeg not found":
-Ensure FFmpeg is installed and in your PATH (locally), configured via nixpacks.toml (on Railway), or included in the Docker image.
-Spotify Error: "invalid_client":
-Verify that SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET are correct.
-Ensure your Spotify account is added to the list of users in the Spotify Developer Dashboard.
-YouTube Music Playlists Not Working:
-If the playlist is a "Radio" playlist (ID starts with RD), the bot may not be able to play it. Try a regular playlist instead.
-Configure youtube_cookies.txt to access private playlists.
-SoundCloud Not Working:
-Ensure the soundcloud_cookies.txt file is populated with your cookies.
-Docker: "Cannot connect to the Docker daemon":
-Ensure Docker is running (sudo systemctl start docker on Linux, or launch Docker Desktop on Windows/macOS).
-Verify you have permission to run Docker (on Linux, add your user to the docker group: sudo usermod -aG docker $USER).
+- Verify that you are in a voice channel.
+- Error: "Voice client cannot be created" or "No voice library found":
+- Ensure PyNaCl is installed (pip install PyNaCl).
+- Verify that FFmpeg is installed and accessible.
+- Error: "FFmpeg not found":
+- Ensure FFmpeg is installed and in your PATH (locally), configured via nixpacks.toml (on Railway), or included in the Docker image.
+- Spotify Error: "invalid_client":
+- Verify that SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET are correct.
+- Ensure your Spotify account is added to the list of users in the Spotify Developer Dashboard.
+- YouTube Music Playlists Not Working:
+- If the playlist is a "Radio" playlist (ID starts with RD), the bot may not be able to play it. Try a regular playlist instead.
+- Configure youtube_cookies.txt to access private playlists.
+- SoundCloud Not Working:
+- Ensure the soundcloud_cookies.txt file is populated with your cookies.
+- Docker: "Cannot connect to the Docker daemon":
+- Ensure Docker is running (sudo systemctl start docker on Linux, or launch Docker Desktop on Windows/macOS).
+- Verify you have permission to run Docker (on Linux, add your user to the docker group: sudo usermod -aG docker $USER).
 # Contact
 If you have questions or suggestions, feel free to create an issue in this repository or contact me on Discord: rostyapa.
