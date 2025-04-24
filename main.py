@@ -1,5 +1,5 @@
 import discord
-from discord import app_commands, ui
+from discord import app_commands, ui, PartialEmoji, Activity, ActivityType
 import yt_dlp
 import asyncio
 import os
@@ -46,7 +46,7 @@ YDL_OPTIONS = {
     'default_search': 'ytsearch',
     'extract_flat': True,
     'cookiefile': 'youtube_cookies.txt',
-    'simulate_browser': True,  # Эмуляция браузера
+    'simulate_browser': True,
     'force_generic_extractor': False,
 }
 YDL_OPTIONS_FULL = {
@@ -56,7 +56,7 @@ YDL_OPTIONS_FULL = {
     'no_warnings': True,
     'default_search': 'ytsearch',
     'cookiefile': 'youtube_cookies.txt',
-    'simulate_browser': True,  # Эмуляция браузера
+    'simulate_browser': True,
     'force_generic_extractor': False,
 }
 YDL_OPTIONS_SOUNDCLOUD = {
@@ -84,10 +84,16 @@ added_by = {}
 current_track_url = {}
 control_messages = {}
 update_tasks = {}
+bot_owner = {}
+voice_check_tasks = {}
+
+# Переменная для отслеживания, сколько серверов сейчас проигрывают музыку
+active_playback_guilds = set()
 
 @client.event
 async def on_ready():
     await tree.sync()
+    await client.change_presence(activity=discord.Activity(type=discord.ActivityType.playing, name=f"Playing music on {len(active_playback_guilds)} servers"))
     logging.info(f'Bot {client.user} has successfully started and connected! Commands are synchronized.')
 
 async def get_youtube_url(query):
@@ -96,7 +102,6 @@ async def get_youtube_url(query):
         try:
             logging.info(f"Searching YouTube for query: {query}")
             logging.info(f"Using YouTube cookies from file: {YDL_OPTIONS_FULL.get('cookiefile', 'Not specified')}")
-            # Добавляем задержку, чтобы избежать частых запросов
             await asyncio.sleep(1)
             result = await loop.run_in_executor(None, lambda: ydl.extract_info(query, download=False))
             if 'entries' in result and result['entries']:
@@ -162,8 +167,12 @@ def get_spotify_track_info(track_url):
 
 def get_spotify_playlist_tracks(playlist_url):
     try:
-        playlist = sp.playlist_tracks(playlist_url)
-        return [f"{item['track']['artists'][0]['name']} - {item['track']['name']}" for item in playlist['items']]
+        results = sp.playlist_tracks(playlist_url, limit=100)
+        tracks = [f"{item['track']['artists'][0]['name']} - {item['track']['name']}" for item in results['items']]
+        while results['next']:
+            results = sp.next(results)
+            tracks.extend([f"{item['track']['artists'][0]['name']} - {item['track']['name']}" for item in results['items']])
+        return tracks
     except spotipy.exceptions.SpotifyException as e:
         logging.error(f"Spotify API error in get_spotify_playlist_tracks: {e}")
         raise
@@ -189,6 +198,8 @@ async def play_next(interaction: discord.Interaction):
     vc = discord.utils.get(client.voice_clients, guild=interaction.guild)
     if not vc or not queues.get(interaction.guild.id):
         logging.info("No voice client or queue found, stopping playback.")
+        active_playback_guilds.discard(interaction.guild.id)
+        await client.change_presence(activity=discord.Activity(type=discord.ActivityType.playing, name=f"Playing music on {len(active_playback_guilds)} servers"))
         return
 
     queue = queues[interaction.guild.id]
@@ -198,17 +209,20 @@ async def play_next(interaction: discord.Interaction):
         current_track_url[interaction.guild.id] = audio_url
         try:
             logging.info(f"Attempting to play: {title} (URL: {audio_url})")
-            # Wrap FFmpegPCMAudio in PCMVolumeTransformer for volume control
             source = discord.FFmpegPCMAudio(audio_url, **FFMPEG_OPTIONS)
-            source = discord.PCMVolumeTransformer(source, volume=1.0)  # Initial volume 100%
+            source = discord.PCMVolumeTransformer(source, volume=1.0)
             vc.play(source, after=lambda e: asyncio.run_coroutine_threadsafe(play_next(interaction), client.loop))
             logging.info(f"Successfully started playing: {title}")
+            active_playback_guilds.add(interaction.guild.id)
+            await client.change_presence(activity=discord.Activity(type=discord.ActivityType.playing, name=f"Playing music on {len(active_playback_guilds)} servers"))
         except Exception as e:
             logging.error(f"Playback error: {e}")
-            await interaction.followup.send(f"Playback error: {e}")
+            await interaction.followup.send(f"Playback error: {e}", ephemeral=True)
     elif not queue:
         logging.info("Queue is empty, stopping playback.")
-        await interaction.followup.send("Queue is empty!")
+        active_playback_guilds.discard(interaction.guild.id)
+        await client.change_presence(activity=discord.Activity(type=discord.ActivityType.playing, name=f"Playing music on {len(active_playback_guilds)} servers"))
+        await interaction.followup.send("Queue is empty!", ephemeral=True)
 
 async def process_playlist(interaction: discord.Interaction, tracks, is_spotify=True, is_soundcloud=False):
     queue = queues[interaction.guild.id]
@@ -223,18 +237,60 @@ async def process_playlist(interaction: discord.Interaction, tracks, is_spotify=
             queue.append((audio_url, title))
             logging.info(f"Added to queue: {title}")
         else:
-            if title:  # title может содержать сообщение об ошибке
-                await interaction.followup.send(title)
+            if title:
+                await interaction.followup.send(title, ephemeral=True)
             else:
-                await interaction.followup.send(f"Could not add track to queue: {track}")
+                await interaction.followup.send(f"Could not add track to queue: {track}", ephemeral=True)
+
+async def check_voice_channel(guild_id):
+    while guild_id in voice_check_tasks:
+        vc = discord.utils.get(client.voice_clients, guild=client.get_guild(guild_id))
+        if not vc:
+            if guild_id in voice_check_tasks:
+                del voice_check_tasks[guild_id]
+            break
+        voice_channel = vc.channel
+        members = voice_channel.members
+        human_members = [member for member in members if not member.bot]
+        if not human_members:
+            await vc.disconnect()
+            if guild_id in queues:
+                del queues[guild_id]
+            if guild_id in current_track:
+                del current_track[guild_id]
+            if guild_id in current_track_url:
+                del current_track_url[guild_id]
+            if guild_id in added_by:
+                del added_by[guild_id]
+            if guild_id in control_messages:
+                try:
+                    await control_messages[guild_id].delete()
+                except:
+                    pass
+                del control_messages[guild_id]
+            if guild_id in update_tasks:
+                update_tasks[guild_id].cancel()
+                del update_tasks[guild_id]
+            if guild_id in bot_owner:
+                del bot_owner[guild_id]
+            active_playback_guilds.discard(guild_id)
+            await client.change_presence(activity=discord.Activity(type=discord.ActivityType.playing, name=f"Playing music on {len(active_playback_guilds)} servers"))
+            logging.info(f"Bot left voice channel in guild {guild_id} due to no human members.")
+            break
+        await asyncio.sleep(10)
 
 @app_commands.command(name="play", description="Play a track or playlist by URL (Spotify, YouTube, YouTube Music, SoundCloud)")
 async def play(interaction: discord.Interaction, url: str):
-    await interaction.response.defer()
+    await interaction.response.defer(ephemeral=True)
 
     if not interaction.user.voice:
-        await interaction.followup.send("You must be in a voice channel!")
+        await interaction.followup.send("You must be in a voice channel!", ephemeral=True)
         return
+
+    if interaction.guild.id in bot_owner:
+        if bot_owner[interaction.guild.id] != interaction.user.id:
+            await interaction.followup.send("The bot is currently being used by another user. Wait until they finish!", ephemeral=True)
+            return
 
     voice_channel = interaction.user.voice.channel
     try:
@@ -243,6 +299,8 @@ async def play(interaction: discord.Interaction, url: str):
     except discord.ClientException:
         vc = discord.utils.get(client.voice_clients, guild=interaction.guild)
         logging.info("Bot is already connected to a voice channel.")
+
+    bot_owner[interaction.guild.id] = interaction.user.id
 
     if interaction.guild.id not in queues:
         queues[interaction.guild.id] = deque()
@@ -254,10 +312,10 @@ async def play(interaction: discord.Interaction, url: str):
             track_query = get_spotify_track_info(url)
             audio_url, title = await get_youtube_url(track_query)
             if not audio_url:
-                if title:  # title может содержать сообщение об ошибке
-                    await interaction.followup.send(title)
+                if title:
+                    await interaction.followup.send(title, ephemeral=True)
                 else:
-                    await interaction.followup.send("Could not find the track on YouTube.")
+                    await interaction.followup.send("Could not find the track on YouTube.", ephemeral=True)
                 return
             queues[interaction.guild.id].append((audio_url, title))
             current_track[interaction.guild.id] = title
@@ -265,58 +323,62 @@ async def play(interaction: discord.Interaction, url: str):
 
         elif 'spotify.com/playlist' in url:
             tracks = get_spotify_playlist_tracks(url)
-            await interaction.followup.send(f"Found a Spotify playlist with {len(tracks)} tracks. Starting processing...")
+            await interaction.followup.send(f"Found a Spotify playlist with {len(tracks)} tracks. Starting processing...", ephemeral=True)
+            if not tracks:
+                await interaction.followup.send("The Spotify playlist is empty or inaccessible.", ephemeral=True)
+                return
             audio_url, title = await get_youtube_url(tracks[0])
             if not audio_url:
-                if title:  # title может содержать сообщение об ошибке
-                    await interaction.followup.send(title)
+                if title:
+                    await interaction.followup.send(title, ephemeral=True)
                 else:
-                    await interaction.followup.send("Could not find the first track on YouTube.")
+                    await interaction.followup.send("Could not find the first track on YouTube.", ephemeral=True)
                 return
             queues[interaction.guild.id].append((audio_url, title))
             current_track[interaction.guild.id] = title
             current_track_url[interaction.guild.id] = audio_url
-            asyncio.create_task(process_playlist(interaction, tracks[1:], is_spotify=True))
+            if len(tracks) > 1:
+                asyncio.create_task(process_playlist(interaction, tracks[1:], is_spotify=True))
 
         elif 'youtube.com/playlist' in url or 'music.youtube.com/playlist' in url:
             tracks = await get_youtube_playlist_urls(url)
             if not tracks:
-                await interaction.followup.send("Could not find the YouTube playlist.")
+                await interaction.followup.send("Could not find the YouTube playlist.", ephemeral=True)
                 return
             audio_url, title = await get_youtube_url(tracks[0][0])
             if not audio_url:
-                if title:  # title может содержать сообщение об ошибке
-                    await interaction.followup.send(title)
+                if title:
+                    await interaction.followup.send(title, ephemeral=True)
                 else:
-                    await interaction.followup.send("Could not find the first track of the YouTube playlist.")
+                    await interaction.followup.send("Could not find the first track of the YouTube playlist.", ephemeral=True)
                 return
             queues[interaction.guild.id].append((audio_url, title))
             current_track[interaction.guild.id] = title
             current_track_url[interaction.guild.id] = audio_url
-            await interaction.followup.send(f"Found a YouTube playlist with {len(tracks)} tracks. Starting processing...")
+            await interaction.followup.send(f"Found a YouTube playlist with {len(tracks)} tracks. Starting processing...", ephemeral=True)
             if len(tracks) > 1:
                 asyncio.create_task(process_playlist(interaction, tracks[1:], is_spotify=False))
 
         elif 'soundcloud.com' in url:
-            if '/sets/' in url:  # SoundCloud playlist
+            if '/sets/' in url:
                 tracks = await get_soundcloud_playlist_urls(url)
                 if not tracks:
-                    await interaction.followup.send("Could not find the playlist on SoundCloud.")
+                    await interaction.followup.send("Could not find the playlist on SoundCloud.", ephemeral=True)
                     return
                 audio_url, title = await get_soundcloud_url(tracks[0][0])
                 if not audio_url:
-                    await interaction.followup.send("Could not find the first track of the SoundCloud playlist.")
+                    await interaction.followup.send("Could not find the first track of the SoundCloud playlist.", ephemeral=True)
                     return
                 queues[interaction.guild.id].append((audio_url, title))
                 current_track[interaction.guild.id] = title
                 current_track_url[interaction.guild.id] = audio_url
-                await interaction.followup.send(f"Found a SoundCloud playlist with {len(tracks)} tracks. Starting processing...")
+                await interaction.followup.send(f"Found a SoundCloud playlist with {len(tracks)} tracks. Starting processing...", ephemeral=True)
                 if len(tracks) > 1:
                     asyncio.create_task(process_playlist(interaction, tracks[1:], is_spotify=False, is_soundcloud=True))
-            else:  # Single SoundCloud track
+            else:
                 audio_url, title = await get_soundcloud_url(url)
                 if not audio_url:
-                    await interaction.followup.send("Could not find the track on SoundCloud.")
+                    await interaction.followup.send("Could not find the track on SoundCloud.", ephemeral=True)
                     return
                 queues[interaction.guild.id].append((audio_url, title))
                 current_track[interaction.guild.id] = title
@@ -325,10 +387,10 @@ async def play(interaction: discord.Interaction, url: str):
         else:
             audio_url, title = await get_youtube_url(url)
             if not audio_url:
-                if title:  # title может содержать сообщение об ошибке
-                    await interaction.followup.send(title)
+                if title:
+                    await interaction.followup.send(title, ephemeral=True)
                 else:
-                    await interaction.followup.send("Could not find the track on YouTube.")
+                    await interaction.followup.send("Could not find the track on YouTube.", ephemeral=True)
                 return
             queues[interaction.guild.id].append((audio_url, title))
             current_track[interaction.guild.id] = title
@@ -339,20 +401,22 @@ async def play(interaction: discord.Interaction, url: str):
         embed.set_footer(text=f"In queue: {len(queues[interaction.guild.id])} tracks | Added by: {added_by[interaction.guild.id]}")
 
         view = MusicControls()
-        message = await interaction.followup.send(embed=embed, view=view)
+        message = await interaction.followup.send(embed=embed, view=view, ephemeral=True)
         control_messages[interaction.guild.id] = message
 
-        # Start a task to update the message every 30 seconds
         user_avatar = interaction.user.avatar.url if interaction.user.avatar else interaction.user.default_avatar.url
         update_task = asyncio.create_task(update_control_message(interaction.guild.id, user_avatar))
         update_tasks[interaction.guild.id] = update_task
+
+        voice_check_task = asyncio.create_task(check_voice_channel(interaction.guild.id))
+        voice_check_tasks[interaction.guild.id] = voice_check_task
 
         if not vc.is_playing():
             await play_next(interaction)
 
     except Exception as e:
         logging.error(f"Playback error: {e}")
-        await interaction.followup.send(f"Could not play: {e}")
+        await interaction.followup.send(f"Could not play: {e}", ephemeral=True)
 
 class MusicControls(ui.View):
     def __init__(self):
@@ -363,9 +427,14 @@ class MusicControls(ui.View):
         current_time = time.time()
         last_press = last_button_press.get(user_id, 0)
 
-        if current_time - last_press < 3:
-            await interaction.response.send_message("Wait 3 seconds before the next press!", ephemeral=True)
+        if current_time - last_press < 1:
+            await interaction.response.send_message("Wait 1 second before the next press!", ephemeral=True)
             return False
+
+        if interaction.guild.id in bot_owner:
+            if bot_owner[interaction.guild.id] != user_id:
+                await interaction.response.send_message("Only the user who started the bot can control it!", ephemeral=True)
+                return False
 
         last_button_press[user_id] = current_time
         return True
@@ -406,7 +475,7 @@ class MusicControls(ui.View):
             audio_url = current_track_url[interaction.guild.id]
             title = current_track[interaction.guild.id]
             source = discord.FFmpegPCMAudio(audio_url, **FFMPEG_OPTIONS)
-            source = discord.PCMVolumeTransformer(source, volume=vc.source.volume if vc.source else 1.0)  # Save the current volume
+            source = discord.PCMVolumeTransformer(source, volume=vc.source.volume if vc.source else 1.0)
             vc.play(source, after=lambda e: asyncio.run_coroutine_threadsafe(play_next(interaction), client.loop))
             await interaction.response.send_message("The track has been restarted.", ephemeral=True)
         else:
@@ -414,9 +483,9 @@ class MusicControls(ui.View):
 
     @ui.button(emoji="❤️", style=discord.ButtonStyle.grey)
     async def link_button(self, interaction: discord.Interaction, button: ui.Button):
-        await interaction.response.send_message("Follow the link: <https://app>", ephemeral=True)
+        await interaction.response.send_message("Follow the link: <https://kicksinsight.vercel.app>", ephemeral=True)
 
-    @ui.button(emoji="🗑️", style=discord.ButtonStyle.grey)
+    @ui.button(emoji="⏹️", style=discord.ButtonStyle.grey)
     async def clear_button(self, interaction: discord.Interaction, button: ui.Button):
         if interaction.guild.id in queues:
             queues[interaction.guild.id].clear()
@@ -424,7 +493,7 @@ class MusicControls(ui.View):
         else:
             await interaction.response.send_message("The queue is already empty!", ephemeral=True)
 
-    @ui.button(emoji="📑", style=discord.ButtonStyle.grey)
+    @ui.button(emoji="📜", style=discord.ButtonStyle.grey)
     async def queue_button(self, interaction: discord.Interaction, button: ui.Button):
         if interaction.guild.id not in queues or not queues[interaction.guild.id]:
             await interaction.response.send_message("The queue is empty!", ephemeral=True)
@@ -450,6 +519,13 @@ class MusicControls(ui.View):
             if interaction.guild.id in update_tasks:
                 update_tasks[interaction.guild.id].cancel()
                 del update_tasks[interaction.guild.id]
+            if interaction.guild.id in voice_check_tasks:
+                voice_check_tasks[interaction.guild.id].cancel()
+                del voice_check_tasks[interaction.guild.id]
+            if interaction.guild.id in bot_owner:
+                del bot_owner[interaction.guild.id]
+            active_playback_guilds.discard(interaction.guild.id)
+            await client.change_presence(activity=discord.Activity(type=discord.ActivityType.playing, name=f"Playing music on {len(active_playback_guilds)} servers"))
             await interaction.response.send_message("The bot has left the channel.", ephemeral=True)
             await interaction.message.delete()
             self.stop()
@@ -461,7 +537,7 @@ class MusicControls(ui.View):
         vc = discord.utils.get(client.voice_clients, guild=interaction.guild)
         if vc and vc.source:
             current_volume = vc.source.volume
-            new_volume = min(current_volume + 0.1, 1.0)  # Increase the volume by 10%, maximum 100%
+            new_volume = min(current_volume + 0.1, 1.0)
             vc.source.volume = new_volume
             await interaction.response.send_message(f"The volume has been increased to {int(new_volume * 100)}%.", ephemeral=True)
         else:
@@ -472,7 +548,7 @@ class MusicControls(ui.View):
         vc = discord.utils.get(client.voice_clients, guild=interaction.guild)
         if vc and vc.source:
             current_volume = vc.source.volume
-            new_volume = max(current_volume - 0.1, 0.0)  # Turn the volume down 10%, minimum 0%
+            new_volume = max(current_volume - 0.1, 0.0)
             vc.source.volume = new_volume
             await interaction.response.send_message(f"The volume has been reduced to {int(new_volume * 100)}%.", ephemeral=True)
         else:
